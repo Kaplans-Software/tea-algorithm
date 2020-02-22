@@ -1,0 +1,113 @@
+//sadikkaplan
+#include <iostream>
+#include<cstring>
+#include<cstdio>
+#include <string>
+#include <cstdlib>
+#include <fstream>
+#include <ctime>
+#include <cstddef>
+#include <vector>
+#include <map>
+#include <array>
+
+using namespace std;
+
+void decodeTea( unsigned int* k, unsigned int* w,unsigned int* v) {
+
+
+    register unsigned int delta=0x9E3779B9;//https://en.wikipedia.org/wiki/Tiny_Encryption_Algorithm max deðeri
+    register unsigned int v0=v[0], v1=v[1], i, sum=0xC6EF3720;
+
+    for(i=0;i<32;i++){
+        v1-=(((v0<<4)^(v0>>5))+v0)^(sum+k[(sum>>11)&3]);
+        sum-=delta;
+        v0-=(((v1<<4)^(v1>>5))+v1)^(sum+k[sum&3]);
+         }
+      w[0]=v0;w[1]=v1;
+}
+
+void TeaDecode ( const std:: string& str,const std::string& key,std::string*out)
+{
+    //unsigned int kullanmak iþaretsiz integer deðerleri saðladýðý için þifre metni ne olacaðýný bilmediðimizden daha avantajlýdýr.
+    unsigned int keybuffer [ 4 ];
+    unsigned int k[4];
+    unsigned int w[2];
+    unsigned int v[2];
+
+    // Dizinin uzunluðunu belirleyerek deðerini set ediyoruz.
+
+    memset (k,0,sizeof(k));
+    memset (w,0,sizeof(w));
+    memset (v,0,sizeof(v));
+    memset ( keybuffer, 0, sizeof(keybuffer) );
+    out->clear();
+    // kaç geçiþ olacak tanýmlanmasý
+    int numBlocks= str.length() / 4;
+    int numPasses= numBlocks - 1;
+
+    if ( numPasses <= 0 ){
+       return;
+    }
+    // Key(anahtar) iþlemleri --> 16bite kadar izin verilir.
+    int len = key.length ();
+
+    if (len>16)
+        len=16;
+      memcpy(keybuffer,key.c_str(),len);
+
+    for (int i=0;i<4;++i){
+       k[i] = keybuffer[i];
+    }
+    // Decode iþlemi için geçici bir tampon oluþturuyoruz.
+    unsigned char* buffer = new unsigned char[numPasses*4+4];
+     memset(buffer,0,numPasses*4+4);
+
+    // Decoding iþleminin çalýþmasý
+    const char* p = str.c_str();
+    v[1] = *(unsigned int*)&p[numPasses*4];
+    for (int i=0;i<numPasses;++i)
+    {
+        v[0]=*(unsigned int*)&p[(numPasses-i-1)*4];
+        decodeTea(&v[0],&w[0],&k[0]);
+        *(unsigned int*) &buffer[(numPasses-i-1)*4] = w[0];
+        v[1]=w[1];
+    }
+    out->assign((char *)buffer,numPasses*4 );
+    delete[]buffer;//geçici tamponu kullandýk ve belleði gereksiz yere iþgal etmemesi için sildik
+}
+int main ()
+{
+//Dosyalama Ýþlemleri
+	 ifstream fileIn;
+	 ofstream fileOut;
+
+	string f1, f2, f3;
+	string *fileName=&f1;//Dosyamýz
+	string *key=&f2;//Anahtar
+
+	cout << "Anahtari(Key Value) giriniz:" << endl;
+	getline(cin, *key);
+	cout << "Hedef Dosyanin Ismini Giriniz:" << endl;
+	getline(cin, *fileName);
+    fileIn.open(*fileName,ios::in|ios::binary);
+    string str (( istreambuf_iterator <char> (fileIn)),istreambuf_iterator <char>() );
+    fileIn.close();
+
+	cout << "Dosya Sisteme Basarili Yuklendi!" << endl;
+	system("pause");
+
+// Tea Decode Algoritmasina alma
+	string outdata;
+	TeaDecode(str,f2,&outdata);
+	str = "0";
+	cout<<"Cikti Dosyasinin Ismini Giriniz:"<<endl;
+	getline (cin, *fileName);
+	fileOut.open( *fileName,ios:: out|ios:: binary );
+    fileOut.write (outdata.c_str(),outdata.size() );
+	cout << "Ýslem Tamamlandi !!!" << endl<<endl<<endl;
+
+
+	system("pause");
+	cout<<"Program Calisma Dizinindeki Uzerinde Ýslem Yaptiniz Dosyayi Kontrol Ediniz!"<<endl;
+	}
